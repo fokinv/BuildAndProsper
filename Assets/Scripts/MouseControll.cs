@@ -11,22 +11,24 @@ public class MouseControll : MonoBehaviour {
 	private int speed = 3;
 	private static Vector3 transPos;
 	//private Vector3 target;
-	private GameObject character;
 	List<Point<int>> path;
 	private bool isCorrectlyPlaced = false;
 	private static Transform tileObject = null;
 	private Vector4 originalColour = new Vector4();
+	private GameObject buildings;
 
 	public static bool isBuilding { get; set; }
 
-	// Use this for initialization
 	void Start () {
+		buildings = GameObject.Find ("Buildings");
+		if (buildings == null) {
+			// TODO: show message
+		}
 		screenHeight = Screen.height;
 		screenWidth = Screen.width;
 		//Debug.Log (screenWidth + "*" + screenHeight);
 	}
-	
-	// Update is called once per frame
+
 	void Update () {
 		//Debug.Log (map.x + " " + map.y);
 		mousePosition = Input.mousePosition;
@@ -39,24 +41,35 @@ public class MouseControll : MonoBehaviour {
 			colorBuilding ();
 		}
 	}
-		
+
 	private void moveCameraIfMouseAtEdge() {
 		transPos = transform.position;
+
+		Vector3 top = Map.mapData [Map.mapSizeX - 1, Map.mapSizeY - 1].tile.transform.position;
+		Vector3 left = Map.mapData [0, Map.mapSizeX - 1].tile.transform.position;
+		Vector3 right = Map.mapData [Map.mapSizeX - 1, 0].tile.transform.position;
+		Vector3 bottom = Map.mapData [0, 0].tile.transform.position;
+
+		Vector3 worldTop = Camera.main.WorldToScreenPoint (top);
+		Vector3 worldLeft = Camera.main.WorldToScreenPoint (left);
+		Vector3 worldRight = Camera.main.WorldToScreenPoint (right);
+		Vector3 worldBottom = Camera.main.WorldToScreenPoint (bottom);
 		float mapWidth = Map.mapSizeX * InitMap.tileWidth;
 		float mapHeight = Map.mapSizeY * InitMap.tileHeight;
-		if (mousePosition.x > screenWidth - bound) {
+
+		if (mousePosition.x > screenWidth - bound && worldRight.x > screenWidth) {
 			//transPos.x += speed * Time.deltaTime;
 			moveCamera (1, 0);
 		}
-		if (mousePosition.y > screenHeight - bound) {
+		if (mousePosition.y > screenHeight - bound && worldTop.y > screenHeight) {
 			//transPos.y += speed * Time.deltaTime;
 			moveCamera (0, 1);
 		}
-		if (mousePosition.x < 0 + bound) {
+		if (mousePosition.x < 0 + bound && worldLeft.x < 0) {
 			//transPos.x -= speed * Time.deltaTime;
 			moveCamera (-1, 0);
 		}
-		if (mousePosition.y < 0 + bound) {
+		if (mousePosition.y < 0 + bound && worldBottom.y < 0) {
 			//transPos.y -= speed * Time.deltaTime;
 			moveCamera (0, -1);
 		}
@@ -125,8 +138,8 @@ public class MouseControll : MonoBehaviour {
 		Vector3 buildingPos = tileObject.position;
 		Point<int> isoPt = Point<int>.fromScreen (Input.mousePosition);
 		Point<float> screenPt = Point<float>.toIsometric (isoPt);
-		Debug.Log ("screenPt X: " + screenPt.x + " Y: " + screenPt.y);
-		Debug.Log ("position X: " + tileObject.position.x + " Y: " + tileObject.position.y);
+		//Debug.Log ("screenPt X: " + screenPt.x + " Y: " + screenPt.y);
+		//Debug.Log ("position X: " + tileObject.position.x + " Y: " + tileObject.position.y);
 		buildingPos.x = screenPt.x;
 		buildingPos.y = screenPt.y;
 		tileObject.position = buildingPos;
@@ -199,10 +212,11 @@ public class MouseControll : MonoBehaviour {
 		}
 		isBuilding = false;
 		tileObject.GetComponent<SpriteRenderer> ().color = originalColour;
+		tileObject.parent = buildings.transform;
 		originalColour = new Vector4 ();
 		tileObject = null;
 	}
-	
+
 	private void cancelBuilding() {
 		isBuilding = false;
 		if (tileObject != null) {
