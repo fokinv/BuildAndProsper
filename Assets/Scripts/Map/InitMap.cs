@@ -68,6 +68,7 @@ public class InitMap : MonoBehaviour {
 	// Places the tile in the world map
 	private void placeTile(Transform tile, Point<float> iso_pt, TileData tileData) {
 		Transform tileObject = Instantiate (tile, new Vector3 (iso_pt.x, iso_pt.y, 0), Quaternion.identity) as Transform;
+		tileObject.tag = "Ground";
 		switch (tileData.tileType) {
 		case TileData.TileType.Lake:
 		case TileData.TileType.Ground:

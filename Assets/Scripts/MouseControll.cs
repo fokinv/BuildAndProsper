@@ -16,23 +16,26 @@ public class MouseControll : MonoBehaviour {
 	private static Transform tileObject = null;
 	private Vector4 originalColour = new Vector4();
 	private GameObject buildings;
+	private GameObject characters;
+	public static GameObject selectedGameObject = null;
 
 	public static bool isBuilding { get; set; }
 
 	void Start () {
 		buildings = GameObject.Find ("Buildings");
+		characters = GameObject.Find ("Characters");
 		if (buildings == null) {
+			// TODO: show message
+		}
+		if (characters == null) {
 			// TODO: show message
 		}
 		screenHeight = Screen.height;
 		screenWidth = Screen.width;
-		//Debug.Log (screenWidth + "*" + screenHeight);
 	}
 
 	void Update () {
-		//Debug.Log (map.x + " " + map.y);
 		mousePosition = Input.mousePosition;
-		//Debug.Log (mousePosition.x + " " + mousePosition.y);
 		moveCameraIfMouseAtEdge();
 		processInputEvent ();
 		if (isBuilding) {
@@ -73,16 +76,16 @@ public class MouseControll : MonoBehaviour {
 			//transPos.y -= speed * Time.deltaTime;
 			moveCamera (0, -1);
 		}
+	}
 
+	private void updateSelectedGameObject(GameObject selected) {
+		selectedGameObject = selected;
+		characters.BroadcastMessage ("checkIfSelected");
+		//buildings.BroadcastMessage ("checkIfSelected");
 	}
 
 	private void processInputEvent () {
 		if (Input.GetMouseButtonDown(0)) {
-			/*Vector3 mousePosition = Input.mousePosition;
-			Vector3 iso_pt = Camera.main.ScreenToWorldPoint (mousePosition);
-			Point<int> target = Point<int>.fromScreen(mousePosition);
-			Point<int> target2 = Point<int>.fromIsometric(new Point<float>(iso_pt.x, iso_pt.y));
-			Destroy (Map.mapData[target.x, target.y].tile.gameObject);*/
 			if (isBuilding) {
 				// build if possible
 				if (isCorrectlyPlaced) {
@@ -95,7 +98,8 @@ public class MouseControll : MonoBehaviour {
 			}
 		}
 		if (Input.GetMouseButtonDown (1)) {
-			// unselect
+			// if selected unit move/action if appropriate
+			//sendAppropriateMessage();
 		}
 		if (Input.GetKey(KeyCode.W)) {
 			moveCamera (0, 1);
@@ -111,9 +115,15 @@ public class MouseControll : MonoBehaviour {
 		}
 		if (Input.GetKey(KeyCode.Escape)) {
 			cancelBuilding();
+			// TODO: cancel select
+			selectedGameObject = null;
+			characters.BroadcastMessage("cancelSelection") ;
 		}
-
 	}
+
+	/*private void sendAppropriateMessage() {
+		characters.BroadcastMessage(" ;
+	}*/
 
 	private void moveCamera(int signX, int signY) {
 		transPos.x += signX * speed * Time.deltaTime;
@@ -138,8 +148,6 @@ public class MouseControll : MonoBehaviour {
 		Vector3 buildingPos = tileObject.position;
 		Point<int> isoPt = Point<int>.fromScreen (Input.mousePosition);
 		Point<float> screenPt = Point<float>.toIsometric (isoPt);
-		//Debug.Log ("screenPt X: " + screenPt.x + " Y: " + screenPt.y);
-		//Debug.Log ("position X: " + tileObject.position.x + " Y: " + tileObject.position.y);
 		buildingPos.x = screenPt.x;
 		buildingPos.y = screenPt.y;
 		tileObject.position = buildingPos;
@@ -150,13 +158,8 @@ public class MouseControll : MonoBehaviour {
 		int ySize = (int) System.Math.Ceiling(tileObject.GetComponent<SpriteRenderer> ().bounds.size.y / InitMap.tileHeight) - 1;
 		Point<int> topRightPoint = Point<int>.fromScreen (Input.mousePosition);
 		Point<int> bottomLeftPoint = new Point<int> (topRightPoint.x - xSize, topRightPoint.y - ySize);
-		//Point<float> screenPt = Point<float>.toIsometric (middlePoint);
 
-		//Temporary workaround, can implement when with more building
-		//Point<int> bottomLeftPoint = new Point<int> (middlePoint.x - xSize, middlePoint.y - ySize);
-		//Debug.Log ("topRightPoint X: " + topRightPoint.x + " Y: " + topRightPoint.y);
-		//Debug.Log ("bottomLeftPoint X: " + bottomLeftPoint.x + " Y: " + bottomLeftPoint.y);
-		if (/*!Point<int>.pointIsInMap(middlePoint) ||*/ !Point<int>.pointIsInMap(topRightPoint) || !Point<int>.pointIsInMap(bottomLeftPoint)) {
+		if (!Point<int>.pointIsInMap(topRightPoint) || !Point<int>.pointIsInMap(bottomLeftPoint)) {
 			isCorrectlyPlaced = false;
 			return;
 		}
@@ -185,7 +188,6 @@ public class MouseControll : MonoBehaviour {
 		}
 		Vector4 currentColor = tileObject.GetComponent<SpriteRenderer> ().color;
 		if (isCorrectlyPlaced) {
-			//tileObject.GetComponent<SpriteRenderer> ().color.r = 1;
 			currentColor.x = 0;
 			currentColor.y = 1;
 			currentColor.z = 0;
@@ -193,7 +195,6 @@ public class MouseControll : MonoBehaviour {
 			currentColor.x = 1;
 			currentColor.y = 0;
 			currentColor.z = 0;
-			//tileObject.GetComponent<SpriteRenderer> ().color.g = 1;
 		}
 		tileObject.GetComponent<SpriteRenderer> ().color = currentColor;
 	}

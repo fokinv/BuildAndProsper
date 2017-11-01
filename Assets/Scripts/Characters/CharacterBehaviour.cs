@@ -23,12 +23,30 @@ public class CharacterBehaviour : MonoBehaviour {
 		spriteRenderer = character.GetComponent<SpriteRenderer> ();
 		lastPos = transform.position;
 	}
-	
+
 	// Update is called once per frame
 	void Update () {
 		checkIfMoving ();
 		moveCharacter ();
 		playAnimation ();
+	}
+
+	void OnMouseDown() {
+		if (Input.GetMouseButtonDown (0)) {
+			isSelected = true;
+			Camera.main.BroadcastMessage ("updateSelectedGameObject", character);
+			//SendMessageUpwards ("cancelSelection");
+		}
+	}
+
+	private void checkIfSelected() {
+		if (character != MouseControll.selectedGameObject) {
+			isSelected = false;
+		}
+	}
+
+	private void cancelSelection() {
+		isSelected = false;
 	}
 
 	private void checkIfMoving() {
@@ -62,7 +80,7 @@ public class CharacterBehaviour : MonoBehaviour {
 	}
 
 	private void moveCharacter () {
-		if (Input.GetMouseButtonDown (0)) {
+		if (Input.GetMouseButtonDown (1) && isSelected) {
 		//if (false) {
 			currentWayPoint = 0;
 			targetPos = new Vector3 ();
