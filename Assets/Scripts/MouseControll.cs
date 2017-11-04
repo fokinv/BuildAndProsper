@@ -17,10 +17,10 @@ public class MouseControll : MonoBehaviour {
 	private Vector4 originalColour = Vector4.zero;
 	private GameObject buildings;
 	private GameObject characters;
-	public static GameObject selectedGameObject = null;
+	private List<GameObject> selectedGameObjects = new List<GameObject>();
 
-	private Vector2 originBoxPos = Vector2.zero;
-	private Vector2 endBoxPos = Vector2.zero;
+	private Vector3 originBoxPos = Vector3.zero;
+	private Vector3 endBoxPos = Vector3.zero;
 
 	public static bool isBuilding { get; set; }
 
@@ -81,11 +81,9 @@ public class MouseControll : MonoBehaviour {
 		}
 	}
 
-	/*private void updateSelectedGameObject(GameObject selected) {
-		selectedGameObject = selected;
-		characters.BroadcastMessage ("checkIfSelected");
-		//buildings.BroadcastMessage ("checkIfSelected");
-	}*/
+	private void addSelectedGameObject(GameObject selected) {
+		selectedGameObjects.Add(selected);
+	}
 
 	private void processInputEvent () {
 		if (Input.GetMouseButtonDown(0)) {
@@ -98,21 +96,21 @@ public class MouseControll : MonoBehaviour {
 				}
 			} else {
 				Vector2 origin = new Vector2 (Camera.main.ScreenToWorldPoint(Input.mousePosition).x, Camera.main.ScreenToWorldPoint(Input.mousePosition).y);
-				Debug.Log (origin);
 				RaycastHit2D hit = Physics2D.Raycast (origin, Vector2.zero, 0f);
 				if (hit) {
-					selectedGameObject = hit.transform.gameObject;
-					selectedGameObject.SendMessage ("select");
+					selectedGameObjects.Add (hit.transform.gameObject);
 				} else {
-					selectedGameObject = null;
-					characters.BroadcastMessage ("unSelect");
+					selectedGameObjects.Clear ();
 				}
 				// select
 			}
 		}
 		if (Input.GetMouseButtonDown (1)) {
-			// if selected unit move/action if appropriate
-			//sendAppropriateMessage();
+			if (selectedGameObjects.Count != 0) {
+				foreach (GameObject go in selectedGameObjects) {
+					go.SendMessage ("acquireTarget", Input.mousePosition);
+				}
+			}
 		}
 		if (Input.GetMouseButton (0)) {
 			if (Input.GetMouseButtonDown (0)) {
@@ -121,10 +119,13 @@ public class MouseControll : MonoBehaviour {
 				endBoxPos = Input.mousePosition;
 			}
 		} else {
-			if (originBoxPos != Vector2.zero && endBoxPos != Vector2.zero) {
-				//TODO: Handle selection
+			if (originBoxPos != Vector3.zero && endBoxPos != Vector3.zero) {
+				Vector3 origin = Camera.main.ScreenToWorldPoint(originBoxPos);
+				Vector3 end = Camera.main.ScreenToWorldPoint(endBoxPos);
+				Vector4 parameters = new Vector4(origin.x, origin.y, end.x, end.y);
+				characters.BroadcastMessage("checkIfInSelecionRectangle", parameters);
 			}
-			originBoxPos = endBoxPos = Vector2.zero;
+			originBoxPos = endBoxPos = Vector3.zero;
 		}
 		if (Input.GetKey(KeyCode.W)) {
 			moveCamera (0, 1);
@@ -140,25 +141,19 @@ public class MouseControll : MonoBehaviour {
 		}
 		if (Input.GetKey(KeyCode.Escape)) {
 			cancelBuilding();
-			// TODO: cancel select
-			selectedGameObject = null;
-			characters.BroadcastMessage("unSelect") ;
+			selectedGameObjects.Clear ();
 		}
 	}
 
 	void OnGUI() {
-		if (originBoxPos != Vector2.zero && endBoxPos != Vector2.zero) {
+		if (originBoxPos != Vector3.zero && endBoxPos != Vector3.zero) {
 			Texture2D selectionTexture = new Texture2D (1,1);
 			selectionTexture.SetPixel (0, 0, /*0Color.green*/ new Color(0f, 0.8f, 0f, 0.25f));
 			selectionTexture.Apply();
-			var rect = new Rect (originBoxPos.x, Screen.height - originBoxPos.y, endBoxPos.x - originBoxPos.x, -1 * (endBoxPos.y - originBoxPos.y));
+			Rect rect = new Rect (originBoxPos.x, Screen.height - originBoxPos.y, endBoxPos.x - originBoxPos.x, -1 * (endBoxPos.y - originBoxPos.y));
 			GUI.DrawTexture (rect, selectionTexture);
 		}
 	}
-
-	/*private void sendAppropriateMessage() {
-		characters.BroadcastMessage(" ;
-	}*/
 
 	private void moveCamera(int signX, int signY) {
 		transPos.x += signX * speed * Time.deltaTime;
