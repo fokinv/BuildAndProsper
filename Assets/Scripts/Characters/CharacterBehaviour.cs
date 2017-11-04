@@ -31,22 +31,12 @@ public class CharacterBehaviour : MonoBehaviour {
 		playAnimation ();
 	}
 
-	void OnMouseDown() {
-		if (Input.GetMouseButtonDown (0)) {
-			isSelected = true;
-			Camera.main.BroadcastMessage ("updateSelectedGameObject", character);
-			//SendMessageUpwards ("cancelSelection");
-		}
-	}
-
-	private void checkIfSelected() {
-		if (character != MouseControll.selectedGameObject) {
-			isSelected = false;
-		}
-	}
-
-	private void cancelSelection() {
+	private void unSelect() {
 		isSelected = false;
+	}
+
+	private void select() {
+		isSelected = true;
 	}
 
 	private void checkIfMoving() {

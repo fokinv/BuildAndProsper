@@ -14,10 +14,13 @@ public class MouseControll : MonoBehaviour {
 	List<Point<int>> path;
 	private bool isCorrectlyPlaced = false;
 	private static Transform tileObject = null;
-	private Vector4 originalColour = new Vector4();
+	private Vector4 originalColour = Vector4.zero;
 	private GameObject buildings;
 	private GameObject characters;
 	public static GameObject selectedGameObject = null;
+
+	private Vector2 originBoxPos = Vector2.zero;
+	private Vector2 endBoxPos = Vector2.zero;
 
 	public static bool isBuilding { get; set; }
 
@@ -78,11 +81,11 @@ public class MouseControll : MonoBehaviour {
 		}
 	}
 
-	private void updateSelectedGameObject(GameObject selected) {
+	/*private void updateSelectedGameObject(GameObject selected) {
 		selectedGameObject = selected;
 		characters.BroadcastMessage ("checkIfSelected");
 		//buildings.BroadcastMessage ("checkIfSelected");
-	}
+	}*/
 
 	private void processInputEvent () {
 		if (Input.GetMouseButtonDown(0)) {
@@ -94,12 +97,34 @@ public class MouseControll : MonoBehaviour {
 					// TODO: show message
 				}
 			} else {
+				Vector2 origin = new Vector2 (Camera.main.ScreenToWorldPoint(Input.mousePosition).x, Camera.main.ScreenToWorldPoint(Input.mousePosition).y);
+				Debug.Log (origin);
+				RaycastHit2D hit = Physics2D.Raycast (origin, Vector2.zero, 0f);
+				if (hit) {
+					selectedGameObject = hit.transform.gameObject;
+					selectedGameObject.SendMessage ("select");
+				} else {
+					selectedGameObject = null;
+					characters.BroadcastMessage ("unSelect");
+				}
 				// select
 			}
 		}
 		if (Input.GetMouseButtonDown (1)) {
 			// if selected unit move/action if appropriate
 			//sendAppropriateMessage();
+		}
+		if (Input.GetMouseButton (0)) {
+			if (Input.GetMouseButtonDown (0)) {
+				originBoxPos = Input.mousePosition;
+			} else {
+				endBoxPos = Input.mousePosition;
+			}
+		} else {
+			if (originBoxPos != Vector2.zero && endBoxPos != Vector2.zero) {
+				//TODO: Handle selection
+			}
+			originBoxPos = endBoxPos = Vector2.zero;
 		}
 		if (Input.GetKey(KeyCode.W)) {
 			moveCamera (0, 1);
@@ -117,7 +142,17 @@ public class MouseControll : MonoBehaviour {
 			cancelBuilding();
 			// TODO: cancel select
 			selectedGameObject = null;
-			characters.BroadcastMessage("cancelSelection") ;
+			characters.BroadcastMessage("unSelect") ;
+		}
+	}
+
+	void OnGUI() {
+		if (originBoxPos != Vector2.zero && endBoxPos != Vector2.zero) {
+			Texture2D selectionTexture = new Texture2D (1,1);
+			selectionTexture.SetPixel (0, 0, /*0Color.green*/ new Color(0f, 0.8f, 0f, 0.25f));
+			selectionTexture.Apply();
+			var rect = new Rect (originBoxPos.x, Screen.height - originBoxPos.y, endBoxPos.x - originBoxPos.x, -1 * (endBoxPos.y - originBoxPos.y));
+			GUI.DrawTexture (rect, selectionTexture);
 		}
 	}
 
@@ -183,7 +218,7 @@ public class MouseControll : MonoBehaviour {
 	}
 
 	private void colorBuilding() {
-		if (originalColour == new Vector4()) {
+		if (originalColour == Vector4.zero) {
 			originalColour= tileObject.GetComponent<SpriteRenderer> ().color;
 		}
 		Vector4 currentColor = tileObject.GetComponent<SpriteRenderer> ().color;
@@ -214,7 +249,7 @@ public class MouseControll : MonoBehaviour {
 		isBuilding = false;
 		tileObject.GetComponent<SpriteRenderer> ().color = originalColour;
 		tileObject.parent = buildings.transform;
-		originalColour = new Vector4 ();
+		originalColour = Vector4.zero;
 		tileObject = null;
 	}
 
