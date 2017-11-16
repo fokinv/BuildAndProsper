@@ -9,8 +9,6 @@ public class InitMap : MonoBehaviour {
 	public static float tileHeight = 0.64f;
 
 	void Start () {
-		//mapData = new TileData[mapSizeX, mapSizeY];
-
 		for (int i = Map.mapSizeY - 1; i >= 0; i--) {
 			for (int j = Map.mapSizeX - 1; j >= 0; j--) {
 				Map.mapData [j, i] = new TileData ();
@@ -18,6 +16,7 @@ public class InitMap : MonoBehaviour {
 		}
 
 		createHillsAndLakes ();
+		createForests ();
 
 		for (int i = Map.mapSizeY-1; i >= 0; i--) {
 			for (int j = Map.mapSizeX-1; j >= 0; j--) {
@@ -42,50 +41,51 @@ public class InitMap : MonoBehaviour {
 					}
 				}
 				Point<float> iso_pt = Point<float>.toIsometric (new Point<int> (j, i));
-
-				/*Debug.Log ("base: " + j + " " + i);
-				Debug.Log ("iso: " + iso_pt.x + " " + iso_pt.y);*/
-				//Debug.Log ("x: " + j + " y: " + i);
-				//Point<int> map = Point<int>.fromIsometric (iso_pt);
-
-				/*Debug.Log(map_x + " " + map_y);
-				Debug.Log(iso_pt.x + " " + iso_pt.y);
-				Debug.Log("---------------------------------------");*/
-				/*Debug.Log ("Map: " + map_x + "," + map_y + "Screen: " + iso_x + "," + iso_y);
-				Point debug_point = fromIsometric(iso_pt);
-				Debug.Log ("Map: " + map_x + "," + map_y + "Map2: " + debug_point.x + "," + debug_point.y);
-				Debug.Log ("-------------------------------------");*/
 				placeTile (groundTile, iso_pt, Map.mapData [j, i]);
-				//Debug.Log (mapData [j, i].tile);
+				if (Map.resourceData[j,i] != null) {
+					switch (Map.resourceData [j, i].tileType) {
+						case TileData.TileType.Forest: 
+						{
+							string path = "Prefabs/" + Map.resourceData [j, i].tileType.ToString () + "/Tree" + Map.resourceData [j, i].prefabID;
+							loadTile (path);
+							break;
+						}
+					case TileData.TileType.Stone: 
+						{
+							string path = "Prefabs/" + Map.resourceData [j, i].tileType.ToString () + "/Tree" + Map.resourceData [j, i].prefabID;
+							loadTile (path);
+							break;
+						}
+					}
+					placeTile (groundTile, iso_pt, Map.resourceData [j, i]);
+				}
 			}
 		}
-	}
-
-	void Update () {
-		
 	}
 
 	// Places the tile in the world map
 	private void placeTile(Transform tile, Point<float> iso_pt, TileData tileData) {
 		Transform tileObject = Instantiate (tile, new Vector3 (iso_pt.x, iso_pt.y, 0), Quaternion.identity) as Transform;
-		tileObject.tag = "Ground";
+
 		switch (tileData.tileType) {
 		case TileData.TileType.Lake:
 		case TileData.TileType.Ground:
-			{
-				tileObject.GetComponent<Renderer>().sortingOrder = 0;
-				break;
-			}
 		case TileData.TileType.Hill:
 			{
+				tileObject.parent = transform;
 				tileObject.GetComponent<Renderer>().sortingOrder = 0;
+				tileObject.tag = "Ground";
+				break;
+			}
+		case TileData.TileType.Forest:
+			{
+				tileObject.GetComponent<Renderer>().sortingOrder = 1;
+				tileObject.parent = GameObject.Find ("ResourcesObject").transform;
+				tileObject.tag = "Resource";
 				break;
 			}
 		}
-		tileObject.parent = transform;
 		tileData.initTile (tileObject);
-		//Debug.Log ("x: " + iso_pt.x + " y: " + iso_pt.y);
-		//Debug.Log("------------------");
 	}
 
 
@@ -107,9 +107,8 @@ public class InitMap : MonoBehaviour {
 				middle = new Point<int> (Random.Range (5, Map.mapSizeX - 5), Random.Range (5, Map.mapSizeY - 5));
 				isClear = checkRadius (middle, radius, type);
 			}
-			//Debug.Log (middle.x + " " + middle.y);
 
-			Environment newMountain = new Environment (middle, radius, type);
+			Environment.createEnvironment(middle, radius, type);
 		}
 
 		for (int i = 0; i < Map.numberOfLakes; i++) {
@@ -122,10 +121,39 @@ public class InitMap : MonoBehaviour {
 				middle = new Point<int> (Random.Range (5, Map.mapSizeX - 5), Random.Range (5, Map.mapSizeY - 5));
 				isClear = checkRadius (middle, radius, type);
 			}
-			//Debug.Log (middle.x + " " + middle.y);
 
-			Environment newMountain = new Environment (middle, radius, type);
+			Environment.createEnvironment(middle, radius, type);
 		}
+	}
+
+	private void createForests() {
+		for (int i = 0; i < Map.numberOfForests; i++) {
+			int radius = Random.Range (0, 5);
+			TileData.TileType type = TileData.TileType.Forest;
+			bool isClear = false;
+			Point<int> middle = new Point<int> (Random.Range (5, Map.mapSizeX - 5), Random.Range (5, Map.mapSizeY - 5));
+
+			/*while (!isClear) {
+				middle = new Point<int> (Random.Range (5, Map.mapSizeX - 5), Random.Range (5, Map.mapSizeY - 5));
+				radius = Random.Range (0, 5);
+				isClear = canPlaceForest (middle, radius);
+			}*/
+
+			Environment.createEnvironment(middle, radius, type);
+		}
+	}
+
+	private bool canPlaceForest(Point<int> middle, int radius) {
+		for (int y = middle.y + radius; y >= middle.y - radius; y--) {
+			for (int x = middle.x + radius; x >= middle.x - radius; x--) {
+				if (Map.mapData [x, y].tileType == TileData.TileType.Ground || (Map.mapData [x, y].tileType == TileData.TileType.Hill && Map.mapData [x, y].prefabID == 1)) {
+					continue;
+				} else {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	private bool checkRadius(Point<int> middle, int radius, TileData.TileType type) {
@@ -138,8 +166,4 @@ public class InitMap : MonoBehaviour {
 		}
 		return true;
 	}
-
-	/*public static Point<int>[] getSurroundings(Point<int> pt) {
-
-	}*/
 }

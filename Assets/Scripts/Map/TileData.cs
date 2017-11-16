@@ -14,7 +14,8 @@ public class TileData {
 		Hill,
 		Lake,
 		Building,
-		Resource,
+		Forest,
+		Stone,
 	}
 
 	public TileData() {

@@ -13,21 +13,40 @@ public class MouseControll : MonoBehaviour {
 	//private Vector3 target;
 	List<Point<int>> path;
 	private bool isCorrectlyPlaced = false;
-	private static Transform tileObject = null;
+	private static Transform structureToBuild = null;
 	private Vector4 originalColour = Vector4.zero;
-	private GameObject buildings;
+	private GameObject structures;
 	private GameObject characters;
-	private List<GameObject> selectedGameObjects = new List<GameObject>();
+	private List<Transform> selectedGameObjects = new List<Transform>();
 
 	private Vector3 originBoxPos = Vector3.zero;
 	private Vector3 endBoxPos = Vector3.zero;
 
+	private BuildingController buildingController;
+	Point<int> topRightPoint;
+
+	private bool isOverGUI = false;
+
+	GameObject canvas;
+
 	public static bool isBuilding { get; set; }
+	private bool isPlacingFlag = false;
+
+	public static List<string> availableCharacters { get; set; }
+	public static List<string> availableStructures { get; set; }
 
 	void Start () {
-		buildings = GameObject.Find ("Buildings");
-		characters = GameObject.Find ("Characters");
-		if (buildings == null) {
+		availableCharacters = new List<string>();
+		availableStructures = new List<string>();
+		availableCharacters.Add ("Builder");
+		availableStructures.Add ("Castle");
+		availableStructures.Add ("Chapel");
+
+		structures = GameObject.Find ("StructuresObject");
+		characters = GameObject.Find ("CharactersObject");
+		canvas = GameObject.Find ("Canvas");
+		buildingController = new BuildingController();
+		if (structures == null) {
 			// TODO: show message
 		}
 		if (characters == null) {
@@ -42,9 +61,10 @@ public class MouseControll : MonoBehaviour {
 		moveCameraIfMouseAtEdge();
 		processInputEvent ();
 		if (isBuilding) {
+			topRightPoint = Point<int>.fromScreen (Input.mousePosition);
 			moveBuilding ();
-			checkIfBuildable ();
-			colorBuilding ();
+			buildingController.checkIfBuildable (structureToBuild, topRightPoint);
+			buildingController.colorBuilding (structureToBuild);
 		}
 	}
 
@@ -81,37 +101,90 @@ public class MouseControll : MonoBehaviour {
 		}
 	}
 
-	private void addSelectedGameObject(GameObject selected) {
+	private void addSelectedGameObject(Transform selected) {
 		selectedGameObjects.Add(selected);
+	}
+
+	// Check if structure is clicked
+	private void structureClicked(Vector3 mousePosition) {
+		Point<int> isoPt = Point<int>.fromScreen (mousePosition);
+		if (isoPt.x < Map.mapSizeX && isoPt.x >= 0 && isoPt.y < Map.mapSizeY && isoPt.y >= 0) {
+			if (Map.buildingData [isoPt.x, isoPt.y] != null) {
+				// TODO: check if player
+				if (Map.buildingData [isoPt.x, isoPt.y].tileType == TileData.TileType.Building) {
+					selectedGameObjects.Add (Map.buildingData [isoPt.x, isoPt.y].tile);
+					selectedGameObjects[0].SendMessage ("showMenu");
+				} 
+			} else {
+				foreach (Transform go in selectedGameObjects) {
+					go.SendMessage ("unSelect");
+				}
+				canvas.SendMessage ("nothingSelected");
+				selectedGameObjects.Clear ();
+			}
+		}
+	}
+
+	// Check if character is clicked
+	private void characterClicked(Vector3 mousePosition) {
+		Vector2 origin = new Vector2 (Camera.main.ScreenToWorldPoint(mousePosition).x, Camera.main.ScreenToWorldPoint(mousePosition).y);
+		RaycastHit2D hit = Physics2D.Raycast (origin, Vector2.zero, 0f);
+		//Vector4 asd = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+		//hit.transform.GetComponent<SpriteRenderer> ().color = asd;
+		if (hit) {
+			// TODO: check if player
+			hit.transform.SendMessage ("showMenu");
+			selectedGameObjects.Add (hit.transform);
+		} else {
+			structureClicked (mousePosition);
+		}
 	}
 
 	private void processInputEvent () {
 		if (Input.GetMouseButtonDown(0)) {
-			if (isBuilding) {
-				// build if possible
-				if (isCorrectlyPlaced) {
-					placeBuilding ();
-				} else {
-					// TODO: show message
+			Point<int> mapPt = Point<int>.fromScreen (mousePosition);
+			if (!isOverGUI) {
+				if (mapPt.x < Map.mapSizeX && mapPt.y < Map.mapSizeY) {
+					if (isBuilding) {
+						// Build if possible
+						if (buildingController.isCorrectlyPlaced) {
+							buildingController.placeBuilding (structureToBuild, selectedGameObjects, topRightPoint);
+							/*foreach (Transform go in selectedGameObjects) {
+								go.SendMessage ("acquireTarget", topRightPoint);
+							}*/
+							isBuilding = false;
+							structureToBuild = null;
+						} else {
+							// TODO: show message
+						}
+					} else if(isPlacingFlag) {
+						selectedGameObjects [0].SendMessage ("placeFlag", mapPt);
+						isPlacingFlag = false;
+					} else {
+						if (selectedGameObjects.Count != 0) {
+							foreach (Transform go in selectedGameObjects) {
+								go.SendMessage ("unSelect");
+							}
+							canvas.SendMessage ("nothingSelected");
+							selectedGameObjects.Clear ();
+						}
+						// Single selection
+						Vector3 mousePosition = Input.mousePosition;
+						characterClicked (mousePosition);
+					}
 				}
-			} else {
-				Vector2 origin = new Vector2 (Camera.main.ScreenToWorldPoint(Input.mousePosition).x, Camera.main.ScreenToWorldPoint(Input.mousePosition).y);
-				RaycastHit2D hit = Physics2D.Raycast (origin, Vector2.zero, 0f);
-				if (hit) {
-					selectedGameObjects.Add (hit.transform.gameObject);
-				} else {
-					selectedGameObjects.Clear ();
-				}
-				// select
 			}
 		}
 		if (Input.GetMouseButtonDown (1)) {
-			if (selectedGameObjects.Count != 0) {
-				foreach (GameObject go in selectedGameObjects) {
-					go.SendMessage ("acquireTarget", Input.mousePosition);
+			if (!isBuilding) {
+				if (selectedGameObjects.Count != 0) {
+					foreach (Transform go in selectedGameObjects) {
+						go.SendMessage ("acquireTarget", Point<int>.fromScreen(mousePosition));
+					}
 				}
 			}
 		}
+		// Box for multiple selection
 		if (Input.GetMouseButton (0)) {
 			if (Input.GetMouseButtonDown (0)) {
 				originBoxPos = Input.mousePosition;
@@ -124,6 +197,21 @@ public class MouseControll : MonoBehaviour {
 				Vector3 end = Camera.main.ScreenToWorldPoint(endBoxPos);
 				Vector4 parameters = new Vector4(origin.x, origin.y, end.x, end.y);
 				characters.BroadcastMessage("checkIfInSelecionRectangle", parameters);
+				if (selectedGameObjects.Count > 0) {
+					bool isSameType = true;
+					string firstType = selectedGameObjects [0].name;
+					foreach (Transform character in selectedGameObjects) {
+						if (character.name != firstType) {
+							isSameType = false;
+							break;
+						}
+					}
+					if (isSameType) {
+						selectedGameObjects [0].SendMessage ("showMenu");
+					} else {
+						//TODO: show default menu
+					}
+				}
 			}
 			originBoxPos = endBoxPos = Vector3.zero;
 		}
@@ -140,11 +228,14 @@ public class MouseControll : MonoBehaviour {
 			moveCamera (1, 0);
 		}
 		if (Input.GetKey(KeyCode.Escape)) {
-			cancelBuilding();
+			if (isBuilding) {
+				cancelBuilding ();
+			}
+			canvas.SendMessage ("nothingSelected");
 			selectedGameObjects.Clear ();
 		}
 	}
-
+	// Selection box drawing
 	void OnGUI() {
 		if (originBoxPos != Vector3.zero && endBoxPos != Vector3.zero) {
 			Texture2D selectionTexture = new Texture2D (1,1);
@@ -161,102 +252,68 @@ public class MouseControll : MonoBehaviour {
 		transform.position = transPos;
 	}
 
-	public static void loadBuilding(string path) {
-		MouseControll.isBuilding = true;
+	private void handleButtonClick(string prefabName) {
+		string path = "";
+		Vector3 isometricVec = Vector3.zero;
+		if (availableStructures.Contains (prefabName)) {
+			if (structureToBuild == null) {
+				isometricVec = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+				isometricVec.z = 0;
+				path = "Prefabs/Buildings/" + prefabName + "/" + prefabName;
+				Transform structure = Resources.Load <Transform> (path);
+				structureToBuild = Instantiate (structure, isometricVec, Quaternion.identity) as Transform;
+				structureToBuild.GetComponent<Renderer> ().sortingOrder = 1;
+				char[] delimiter = { '(' };
+				structureToBuild.name = structureToBuild.name.Split (delimiter) [0];
+			}
+			isBuilding = true;
+		} else if (availableCharacters.Contains (prefabName)) {
+			selectedGameObjects [0].SendMessage ("createCharacter", prefabName);
+		} else {
+			BuildingController.ActionType actionType = convertButtonTextToActionType (prefabName);
 
-		if (tileObject == null) {
-			Point<int> isoPt = Point<int>.fromScreen (Input.mousePosition);
-			Transform building = Resources.Load <Transform> (path);
-			tileObject = Instantiate (building, new Vector3 (isoPt.x, isoPt.y, 0), Quaternion.identity) as Transform;
-			tileObject.GetComponent<Renderer> ().sortingOrder = 1;
+			switch (actionType) {
+			case BuildingController.ActionType.PlaceFlag:
+				//TODO: write message: Place rally flag
+				isPlacingFlag = true;
+				break;
+			}
+
+			/*foreach (Transform go in selectedGameObjects) {
+				go.SendMessage ("action", actionType);
+			}*/
 		}
+	}
 
-		isBuilding = true;
+	private BuildingController.ActionType convertButtonTextToActionType(string prefabName) {
+		switch (prefabName) {
+		case "Flag":
+				return BuildingController.ActionType.PlaceFlag;
+		default:
+			return BuildingController.ActionType.Error;
+		}
 	}
 
 	private void moveBuilding() {
-		Vector3 buildingPos = tileObject.position;
-		Point<int> isoPt = Point<int>.fromScreen (Input.mousePosition);
-		Point<float> screenPt = Point<float>.toIsometric (isoPt);
-		buildingPos.x = screenPt.x;
-		buildingPos.y = screenPt.y;
-		tileObject.position = buildingPos;
-	}
-
-	private void checkIfBuildable() {
-		int xSize = (int) System.Math.Ceiling(tileObject.GetComponent<SpriteRenderer> ().bounds.size.x / InitMap.tileWidth) - 1;
-		int ySize = (int) System.Math.Ceiling(tileObject.GetComponent<SpriteRenderer> ().bounds.size.y / InitMap.tileHeight) - 1;
-		Point<int> topRightPoint = Point<int>.fromScreen (Input.mousePosition);
-		Point<int> bottomLeftPoint = new Point<int> (topRightPoint.x - xSize, topRightPoint.y - ySize);
-
-		if (!Point<int>.pointIsInMap(topRightPoint) || !Point<int>.pointIsInMap(bottomLeftPoint)) {
-			isCorrectlyPlaced = false;
-			return;
-		}
-
-		int surface = 0;
-		int acceptedSurface = 0;
-		for (int y = topRightPoint.y; y >= bottomLeftPoint.y; y--) {
-			for (int x = topRightPoint.x; x >= bottomLeftPoint.x; x--) {
-				surface++;
-				if (Map.mapData [x, y].tileType == TileData.TileType.Ground && Map.mapData [x, y].isWalkable) {
-					acceptedSurface++;
-				}
-			}
-		}
-		if (acceptedSurface == surface) {
-			isCorrectlyPlaced = true;
-		} else {
-			isCorrectlyPlaced = false;
-		}
-
-	}
-
-	private void colorBuilding() {
-		if (originalColour == Vector4.zero) {
-			originalColour= tileObject.GetComponent<SpriteRenderer> ().color;
-		}
-		Vector4 currentColor = tileObject.GetComponent<SpriteRenderer> ().color;
-		if (isCorrectlyPlaced) {
-			currentColor.x = 0;
-			currentColor.y = 1;
-			currentColor.z = 0;
-		} else {
-			currentColor.x = 1;
-			currentColor.y = 0;
-			currentColor.z = 0;
-		}
-		tileObject.GetComponent<SpriteRenderer> ().color = currentColor;
-	}
-
-	private void placeBuilding() {
-		int xSize = (int) System.Math.Ceiling(tileObject.GetComponent<SpriteRenderer> ().bounds.size.x / InitMap.tileWidth) - 1;
-		int ySize = (int) System.Math.Ceiling(tileObject.GetComponent<SpriteRenderer> ().bounds.size.y / InitMap.tileHeight) - 1;
-		Point<int> topRightPoint = Point<int>.fromScreen (Input.mousePosition);
-		Point<int> bottomLeftPoint = new Point<int> (topRightPoint.x - xSize, topRightPoint.y - ySize);
-
-		for (int y = topRightPoint.y; y >= bottomLeftPoint.y; y--) {
-			for (int x = topRightPoint.x; x >= bottomLeftPoint.x; x--) {
-				Map.mapData [x, y].isWalkable = false;
-				Map.buildingData [x, y] = new TileData (0, false, TileData.TileType.Building, tileObject);
-			}
-		}
-		isBuilding = false;
-		tileObject.GetComponent<SpriteRenderer> ().color = originalColour;
-		tileObject.parent = buildings.transform;
-		originalColour = Vector4.zero;
-		tileObject = null;
+		Vector3 buildingPos = structureToBuild.position;
+		Point<int> mapPt = Point<int>.fromScreen (Input.mousePosition);
+		Point<float> isoPt = Point<float>.toIsometric (mapPt);
+		buildingPos.x = isoPt.x;
+		buildingPos.y = isoPt.y;
+		structureToBuild.position = buildingPos;
 	}
 
 	private void cancelBuilding() {
 		isBuilding = false;
-		if (tileObject != null) {
-			Destroy (tileObject.gameObject);
+		if (structureToBuild != null) {
+			Destroy (structureToBuild.gameObject);
 		}
-		tileObject = null;
+		structureToBuild = null;
 	}
 
-
+	private void setIsOverGUI (bool value) {
+		isOverGUI = value;
+	}
 
 	public static Vector3 getMouseWoldPosition() {
 		mousePosition = Input.mousePosition;

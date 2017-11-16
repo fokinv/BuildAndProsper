@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Resource : MonoBehaviour {
 	private int amount;
-	private Transform tile;
+
 	// Use this for initialization
 	void Start () {
 		
