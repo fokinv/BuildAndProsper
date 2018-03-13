@@ -10,28 +10,28 @@ public class ButtonController : MonoBehaviour, IPointerEnterHandler, IPointerExi
 	void Start () {
 		Button button = GetComponent<Button> ();
 		gameObject.SetActive (false);
-		button.onClick.AddListener (buttonClicked);
+		button.onClick.AddListener (ButtonClicked);
 	}
 
-	private void enableButton(Transform tile) {
+	private void EnableButton(Transform tile) {
 		tileObject = tile;
 	}
 
-	private void disableButton() {
+	private void DisableButton() {
 		tileObject = null;
 		gameObject.SetActive (false);
 	}
 
 	public void OnPointerEnter(PointerEventData eventData) {
-		Camera.main.SendMessage ("setIsOverGUI", true);
+		Camera.main.SendMessage ("SetIsOverGUI", true);
 	}
 
 	public void OnPointerExit(PointerEventData eventData) {
-		Camera.main.SendMessage ("setIsOverGUI", false);
+		Camera.main.SendMessage ("SetIsOverGUI", false);
 	}
 
-	private void buttonClicked() {
+	private void ButtonClicked() {
 		string prefabName = GetComponentInChildren<Text> ().text;
-		Camera.main.SendMessage ("handleButtonClick", prefabName);
+		Camera.main.SendMessage ("HandleButtonClick", prefabName);
 	}
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Environment {
 
-	public static void createEnvironment(Point<int> middle, int radius, TileData.TileType type) {
+	public static void CreateEnvironment(Point<int> middle, int radius, TileData.TileType type) {
 		bool isWalkable;
 		if (type == TileData.TileType.Hill) {
 			isWalkable = true;
@@ -26,48 +26,39 @@ public class Environment {
 						} else if (y == buttomLeft.y) {
 							if (x == buttomLeft.x) {
 								//Debug.Log ("A2");
-								Map.mapData [x, y].changeTile (2, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (2, isWalkable, type);
 							} else if (x == topRight.x) {
 								//Debug.Log ("A3");
-								Map.mapData [x, y].changeTile (5, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (5, isWalkable, type);
 							} else if (x < topRight.x && x > buttomLeft.x) {
 								//Debug.Log ("A4");
-								Map.mapData [x, y].changeTile (9, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (9, isWalkable, type);
 							}
 						} else if (y == topRight.y) {
 							if (x == topRight.x) {
 								//Debug.Log ("A5");
-								Map.mapData [x, y].changeTile (4, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (4, isWalkable, type);
 							} else if (x == buttomLeft.x) {
 								//Debug.Log ("A5");
-								Map.mapData [x, y].changeTile (3, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (3, isWalkable, type);
 							} else if (x < topRight.x && x > buttomLeft.x) {
 								//Debug.Log ("A7");
-								Map.mapData [x, y].changeTile (7, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (7, isWalkable, type);
 							}
 						} else if (x == buttomLeft.x) {
 							if (y < topRight.y && y > buttomLeft.y) {
-								Map.mapData [x, y].changeTile (6, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (6, isWalkable, type);
 							}
 						} else if (x == topRight.x) {
 							if (y < topRight.y && y > buttomLeft.y) {
-								Map.mapData [x, y].changeTile (8, isWalkable, type);
+								Map.mapData [x, y].ChangeTile (8, isWalkable, type);
 							}
 						} else {
-							Map.mapData [x, y].changeTile (1, isWalkable, type);
+							Map.mapData [x, y].ChangeTile (1, isWalkable, type);
 						}
 					}
 				}
 			} 
-		} else if (type == TileData.TileType.Forest || type == TileData.TileType.Stone) {
-			for (int y = topRight.y; y >= buttomLeft.y; y--) {
-				for (int x = topRight.x; x >= buttomLeft.x; x--) {
-					if (Map.mapData [x, y].tileType == TileData.TileType.Ground) {
-						Map.mapData [x, y].isWalkable = false;
-						Map.resourceData [x, y] = new TileData (1, false, TileData.TileType.Forest);
-					}
-				}
-			}
-		}
+		} 
 	}
 }

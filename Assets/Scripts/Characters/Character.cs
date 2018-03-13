@@ -4,23 +4,29 @@ using UnityEngine;
 
 public class Character : MonoBehaviour {
 	protected int healthPoints;
+	protected int damagePerSecond;
 	protected int walkingSpeed;
 	protected int level;
-	protected int actionSpeed;
+	public float actionSpeed { get; set; } // How many actions it does in a second
 
 	private bool isMoving = false;
-	private Animator animator;
-	private SpriteRenderer spriteRenderer;
+	protected Animator animator;
+	protected SpriteRenderer spriteRenderer;
 
 	protected List<Point<int>> path = new List<Point<int>>();
 	private Vector3 targetPos = Vector3.zero;
 	private Vector3 lastPos;
 	private Pathfinding pathFinder = new Pathfinding ();
 	protected int currentWayPoint = 0;
-	protected Point<int> targetPoint = new Point<int> ();
+	public Point<int> targetPoint { get; set; }
+	protected StructureData assignedStructure = null;
+
+	public Player player { get; set; }
 
 	// Use this for initialization
 	protected void Start () {
+		Player pl = Camera.main.GetComponent (typeof(Player)) as Player;
+		player = pl;
 		animator = GetComponent<Animator> ();
 		spriteRenderer = GetComponent<SpriteRenderer> ();
 		lastPos = transform.position;
@@ -28,12 +34,13 @@ public class Character : MonoBehaviour {
 	}
 
 	protected void Update () {
-		checkIfMoving ();
-		moveCharacter ();
-		playAnimation ();
+		CheckIfMoving ();
+		CheckSortingOrder ();
+		MoveCharacter ();
+		PlayAnimation ();
 	}
 
-	private void checkIfMoving() {
+	private void CheckIfMoving() {
 		Vector3 curPos = transform.position;
 		if (curPos != lastPos) {
 			isMoving = true;
@@ -43,7 +50,13 @@ public class Character : MonoBehaviour {
 		lastPos = curPos;
 	}
 
-	private void playAnimation () {
+	private void CheckSortingOrder () {
+		Point<int> currentPosition = Point<int>.FromIsometricStart (new Point<float> (lastPos.x, lastPos.y));
+		int currentLayer = (Map.mapSizeX + Map.mapSizeY) - (currentPosition.x + currentPosition.y);
+		spriteRenderer.sortingOrder = currentLayer;
+	}
+
+	protected void PlayAnimation () {
 		Vector3 transpos = transform.position;
 		if (isMoving) {
 			// set facing
@@ -63,39 +76,39 @@ public class Character : MonoBehaviour {
 		}
 	}
 
-	protected void acquireTarget(Point<int> target) {
+	protected void AcquireTarget(Point<int> target) {
 		currentWayPoint = 0;
 		targetPos = Vector3.zero;
 		Vector3 startV = GetComponent<Renderer> ().transform.position;
-		Point<int> start = Point<int>.fromIsometricStart (new Point<float>(startV.x, startV.y));
+		Point<int> start = Point<int>.FromIsometricStart (new Point<float>(startV.x, startV.y));
 		//Point<int> target = Point<int>.fromScreen(targetPosition);
-		path = pathFinder.pathFinding(start, target);
+		path = pathFinder.PathFinding(start, target);
 	}
 
-	private void moveCharacter () {
+	private void MoveCharacter () {
 		if (currentWayPoint < path.Count) {
 			if(targetPos == Vector3.zero) {
-				Point<float> target = Point<float>.toIsometric (path [currentWayPoint]);
+				Point<float> target = Point<float>.ToIsometric (path [currentWayPoint]);
 				targetPos = new Vector3 (target.x, target.y, 0);
 			}
-			walk ();
+			Walk ();
 		}
 
 	}
 
-	private void walk() {
+	private void Walk() {
 		transform.position = Vector3.MoveTowards (transform.position, targetPos, walkingSpeed * Time.deltaTime);
 
 		if (transform.position == targetPos) {
 			currentWayPoint++;
 			if (currentWayPoint < this.path.Count) {
-				Point<float> newTarget = Point<float>.toIsometric (path [currentWayPoint]);
+				Point<float> newTarget = Point<float>.ToIsometric (path [currentWayPoint]);
 				targetPos = new Vector3 (newTarget.x, newTarget.y, 0);
 			}
 		}
 	}
 
-	private void checkIfInSelecionRectangle(Vector4 bounds) {
+	private void CheckIfInSelecionRectangle(Vector4 bounds) {
 		bool isXWithin = false;
 		bool isYWithin = false;
 		if (bounds.x - bounds.z > 0) {
@@ -119,16 +132,16 @@ public class Character : MonoBehaviour {
 		}
 
 		if (isXWithin && isYWithin) {
-			Camera.main.BroadcastMessage ("addSelectedGameObject", transform);
+			Camera.main.BroadcastMessage ("AddSelectedGameObject", transform);
 		}
 	}
 
-	private void showMenu() {
+	private void ShowMenu() {
 		GameObject canvas = GameObject.Find ("Canvas");
-		canvas.SendMessage ("selected", transform);
+		canvas.SendMessage ("Selected", transform);
 	}
-
-	protected void unSelect() {
+		
+	protected void UnSelect() {
 		
 	}
 }

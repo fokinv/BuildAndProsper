@@ -14,20 +14,20 @@ public class MenuController : MonoBehaviour {
 		
 	}
 
-	private void nothingSelected() {
+	private void NothingSelected() {
 		foreach (Transform child in transform) {
 			foreach (Transform grandChild in child) {
 				if (grandChild.gameObject.activeInHierarchy) {
-					grandChild.SendMessage ("disableButton");
+					grandChild.SendMessage ("DisableButton");
 				}
 			}
 		}
 	}
 
-	private void selected(Transform selected) {
+	private void Selected(Transform selected) {
 		Transform menu = transform.Find (selected.name);
 		Vector3 position = new Vector3(32.0f, 32.0f, 0.0f);
-		activateMenu (menu, selected, position);
+		ActivateMenu (menu, selected, position);
 		position = new Vector3(32.0f, 96.0f, 0.0f);
 		bool menuChanged = false;
 		if (MouseControll.availableCharacters.Contains(selected.name)) {
@@ -39,16 +39,16 @@ public class MenuController : MonoBehaviour {
 		}
 
 		if (menuChanged) {
-			activateMenu (menu, selected, position);
+			ActivateMenu (menu, selected, position);
 		}
 	}
 
-	private void activateMenu(Transform menu, Transform tile, Vector3 position) {
+	private void ActivateMenu(Transform menu, Transform tile, Vector3 position) {
 		foreach (Transform child in menu) {
 			if (!child.gameObject.activeInHierarchy) {
 				child.gameObject.SetActive(true);
 			}
-			child.SendMessage("enableButton", tile);
+			child.SendMessage("EnableButton", tile);
 			child.GetComponent<RectTransform>().position = position;
 			position.x += child.GetComponent<RectTransform>().sizeDelta.x;
 		}

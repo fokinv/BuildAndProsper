@@ -6,8 +6,8 @@ TagManager:
   tags:
   - Ground
   - Character
-  - Building
   - Resource
+  - Structures
   layers:
   - Default
   - TransparentFX

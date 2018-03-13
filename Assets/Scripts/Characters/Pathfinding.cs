@@ -19,17 +19,17 @@ public class Pathfinding {
 		public Element(Point<int> coords, Element parent, Point<int> target) {
 			this.coords = coords;
 			this.parent = parent;
-			setDistanceAndCost (target);
+			SetDistanceAndCost (target);
 		}
 
 		public void update(Element newParent, Point<int> target) {
 			this.parent = newParent;
-			setDistanceAndCost (target);
+			SetDistanceAndCost (target);
 		}
 
-		private void setDistanceAndCost(Point<int> target) {
+		private void SetDistanceAndCost(Point<int> target) {
 			if (parent != null) {
-				if (isVerticalOrHorizontalMove(parent.coords, this.coords)) {
+				if (IsVerticalOrHorizontalMove(parent.coords, this.coords)) {
 					distanceFromStart = parent.distanceFromStart + 10;
 				} else {
 					distanceFromStart = parent.distanceFromStart + 14;
@@ -42,7 +42,7 @@ public class Pathfinding {
 		}
 	}
 
-	public static bool isVerticalOrHorizontalMove(Point<int> start, Point<int> point2) {
+	public static bool IsVerticalOrHorizontalMove(Point<int> start, Point<int> point2) {
 		if (((point2.x == start.x + 1 || point2.x == start.x - 1) && (point2.y == start.y)) ||
 			((point2.y == start.y + 1 || point2.y == start.y - 1) && (point2.x == start.x))) {
 			return true;
@@ -50,7 +50,7 @@ public class Pathfinding {
 		return false;
 	}
 
-	public List<Point<int>> pathFinding(Point<int> startPt, Point<int> targetPt) {
+	public List<Point<int>> PathFinding(Point<int> startPt, Point<int> targetPt) {
 		this.target = targetPt;
 		this.start = startPt;
 
@@ -74,7 +74,7 @@ public class Pathfinding {
 		TileData targetTile = Map.mapData [target.x, target.y];
 		if (!targetTile.isWalkable) {
 			//return new List<Point<int>> ();
-			target = newTarget ();
+			target = NewTarget ();
 		}
 
 		Element currentElem = new Element (start, null, target);
@@ -89,11 +89,11 @@ public class Pathfinding {
 			if (currentElem.coords.x == target.x && currentElem.coords.y == target.y) {
 				targetNotInClosed = false;
 			}
-			addToOrUpdateOpenList (currentElem);
-			currentElem = returnMinimumCost ();
+			AddToOrUpdateOpenList (currentElem);
+			currentElem = ReturnMinimumCost ();
 		}
 
-		List<Point<int>> path =  pathToReturn();
+		List<Point<int>> path =  PathToReturn();
 		openList.Clear ();
 		closedList.Clear ();
 		target = null;
@@ -101,7 +101,11 @@ public class Pathfinding {
 		return path;
 	}
 
-	private Point<int> newTarget() {
+	private Point<int> NewTarget() {
+		/*if (Map.buildingData[target.x, target.y] != null) {
+			Structure structureScript = Map.buildingData [target.x, target.y].tile.GetComponent (typeof(Structure)) as Structure;
+			return Point<int>.FromIsometric (new Point<float> (structureScript.entranceExit.x, structureScript.entranceExit.y));
+		}*/
 		bool foundNewTarget = false;
 		bool incRadius = true;
 		int radius = 1;
@@ -120,7 +124,8 @@ public class Pathfinding {
 					int distanceFromTarget = (System.Math.Abs ((x - target.x)) + System.Math.Abs ((y - target.y))) * 10;
 					if (distanceFromTarget < minimumDistance) {
 						minimumDistance = distanceFromTarget;
-						tempTarget = new Point<int> (x, y);
+						tempTarget.x = x;
+						tempTarget.y = y;
 					}
 				}
 			}
@@ -133,9 +138,9 @@ public class Pathfinding {
 		return tempTarget;
 	}
 
-	private List<Point<int>> pathToReturn() {
+	private List<Point<int>> PathToReturn() {
 		List<Point<int>> path = new List<Point<int>>();
-		Element currentElem = findElemInList(closedList, target);
+		Element currentElem = FindElemInList(closedList, target);
 		bool isStart = false;
 		do {
 			if (currentElem.coords.x == start.x && currentElem.coords.y == start.y) {
@@ -148,8 +153,8 @@ public class Pathfinding {
 		return path;
 	}
 
-	private void addToOrUpdateOpenList(Element currentElem) {
-		List<Point<int>> surroundings = getSurroundings (currentElem.coords);
+	private void AddToOrUpdateOpenList(Element currentElem) {
+		List<Point<int>> surroundings = GetSurroundings (currentElem.coords);
 		for (int i=0; i < surroundings.Count; i++) {
 			Point<int> temp = surroundings [i];
 			Element newElem = new Element (temp, currentElem, target);
@@ -157,9 +162,9 @@ public class Pathfinding {
 				Debug.Log ("Temp rossz: " + temp.x + " " + temp.y);
 			}
 			TileData pointToExamine = Map.mapData [temp.x, temp.y];
-			Element oldElemClosed = findElemInList(closedList, temp);
+			Element oldElemClosed = FindElemInList(closedList, temp);
 			if (pointToExamine.isWalkable && oldElemClosed == null) {
-				Element oldElemOpen = findElemInList(openList, temp);
+				Element oldElemOpen = FindElemInList(openList, temp);
 				if (oldElemOpen != null) {
 					if (newElem.distanceFromStart < oldElemOpen.distanceFromStart) {
 						oldElemOpen.update (currentElem, target);
@@ -171,7 +176,7 @@ public class Pathfinding {
 		}
 	}
 
-	private List<Point<int>> getSurroundings(Point<int> pt) {
+	private List<Point<int>> GetSurroundings(Point<int> pt) {
 		List<Point<int>> list = new List<Point<int>> ();
 		if (pt.x < Map.mapSizeX - 1) {
 			list.Add (new Point<int>(pt.x + 1, pt.y));
@@ -203,7 +208,7 @@ public class Pathfinding {
 	}
 
 	// helper functions
-	private Element returnMinimumCost() {
+	private Element ReturnMinimumCost() {
 		if (openList.Count != 0) {
 			Element nextElem = null;
 			int min = System.Int32.MaxValue;
@@ -218,7 +223,7 @@ public class Pathfinding {
 		return null;
 	}
 
-	private Element findElemInList(List<Element> list, Point<int> pt) {
+	private Element FindElemInList(List<Element> list, Point<int> pt) {
 		foreach(Element elem in list) {
 			if (elem.coords.x == pt.x && elem.coords.y == pt.y) {
 				return elem;
@@ -226,4 +231,49 @@ public class Pathfinding {
 		}
 		return null;
 	}
+
+
+	public static Point<int> FindNearestType(Point<int> point, string name) {
+		bool foundNewTarget = false;
+		int radius = 1;
+		int minimumDistance = System.Int32.MaxValue;
+		Point<int> tempTarget = new Point<int> ();
+		while (!foundNewTarget) {
+			for(int y = point.y - radius; y <= point.y + radius; y++) {
+				for (int x = point.x - radius; x <= point.x + radius; x++) {
+					if (x > Map.mapSizeX - 1 || y > Map.mapSizeY - 1 || x < 0 || y < 0) {
+						continue;
+					}
+					if (MouseControll.availableStructures.Contains (name)) {
+						if (Map.buildingData [x, y] != null && Map.buildingData [x, y].tile.name == name) {
+							tempTarget.x = x;
+							tempTarget.y = y;
+							foundNewTarget = true;
+							break;
+						}
+					} else {
+						if (Map.resourceData [x, y] != null && Map.resourceData [x, y].tile != null ) {
+							if (Map.resourceData [x, y].tile.name == name) {
+								Resource resourceScript = Map.resourceData [x, y].tile.GetComponent (typeof(Resource)) as Resource;
+								if (resourceScript.amountLeft > 0) {
+									tempTarget.x = x;
+									tempTarget.y = y;
+									foundNewTarget = true;
+									break;
+								}
+							}
+						}
+					}
+				}
+				if (foundNewTarget) {
+					break;
+				}
+			}
+			if (radius == Map.mapSizeX) {
+				return point;
+			}
+			radius++;
+		}
+		return tempTarget;
+	} 
 }

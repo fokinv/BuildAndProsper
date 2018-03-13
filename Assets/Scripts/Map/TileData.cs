@@ -13,9 +13,6 @@ public class TileData {
 		Ground,
 		Hill,
 		Lake,
-		Building,
-		Forest,
-		Stone,
 	}
 
 	public TileData() {
@@ -32,18 +29,18 @@ public class TileData {
 		this.tile = tile;
 	}
 
-	public void changeTile(int prefabID, bool isWalkable, TileType tileType, Transform tile = null) {
+	public void ChangeTile(int prefabID, bool isWalkable, TileType tileType, Transform tile = null) {
 		this.prefabID = prefabID;
 		this.isWalkable = isWalkable;
 		this.tileType = tileType;
 		this.tile = tile;
 	}
 
-	public void initTile(Transform tile) {
+	public void InitTile(Transform tile) {
 		this.tile = tile;
 	}
 
-	public bool isSameEnvironment(TileType type) {
+	public bool IsSameEnvironment(TileType type) {
 		return tileType == type;
 	}
 }
